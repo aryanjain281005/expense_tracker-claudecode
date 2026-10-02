@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy — Spendly{% endblock %}
+
+{% block content %}
+<article class="legal">
+    <h1 class="legal-title">Privacy Policy</h1>
+    <p class="legal-updated">Last updated: 2 October 2026</p>
+
+    <p>Spendly helps you log and understand your personal expenses. This policy explains what information we collect, how we use it, and the choices you have.</p>
+
+    <h2>Information we collect</h2>
+    <ul>
+        <li><strong>Account details:</strong> your name, email address and a password. Passwords are stored as one-way hashes, never in plain text.</li>
+        <li><strong>Expense data:</strong> the amounts, categories, dates and descriptions you choose to enter.</li>
+        <li><strong>Technical data:</strong> basic information such as your browser type that your browser sends with every request.</li>
+    </ul>
+
+    <h2>How we use your information</h2>
+    <ul>
+        <li>To create and secure your account.</li>
+        <li>To store your expenses and show you summaries and filters.</li>
+        <li>To maintain and improve the service.</li>
+    </ul>
+    <p>We do not sell your personal information or use your expense data for advertising.</p>
+
+    <h2>Sharing</h2>
+    <p>We do not share your data with third parties, except where required by law or to protect the security of the service. The site loads fonts from Google Fonts, which means your browser contacts Google's servers when a page loads.</p>
+
+    <h2>Cookies</h2>
+    <p>Spendly uses a session cookie to keep you signed in. We do not use advertising or tracking cookies.</p>
+
+    <h2>Data retention and deletion</h2>
+    <p>We keep your data for as long as your account exists. You can ask us to delete your account and all associated expenses at any time.</p>
+
+    <h2>Security</h2>
+    <p>We take reasonable steps to protect your information, but no online service can guarantee absolute security.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>We may update this policy from time to time. The "last updated" date above shows when it last changed.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy? Reach out through the project's <a href="https://github.com/aryanjain281005/expense_tracker-claudecode">GitHub repository</a>.</p>
+
+    <p><a href="{{ url_for('terms') }}">Read our Terms &amp; Conditions</a></p>
+</article>
+{% endblock %}
