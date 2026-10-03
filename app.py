@@ -84,7 +84,7 @@ def login():
     conn = get_db()
     try:
         user = conn.execute(
-            "SELECT id, password_hash FROM users WHERE email = ?", (email,)
+            "SELECT id, name, password_hash FROM users WHERE email = ?", (email,)
         ).fetchone()
     finally:
         conn.close()
@@ -96,6 +96,7 @@ def login():
 
     session.clear()
     session["user_id"] = user["id"]
+    session["user_name"] = user["name"]
     return redirect(url_for("landing"))
 
 
@@ -121,7 +122,48 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    # Hardcoded for Step 4 — replaced by real queries in Step 5.
+    user = {
+        "name": "Demo User",
+        "email": "demo@spendly.com",
+        "initials": "DU",
+        "member_since": "January 2026",
+    }
+    transactions = [
+        {"date": "2026-10-01", "description": "Electricity bill", "category": "Bills", "amount": 1200.00},
+        {"date": "2026-09-28", "description": "Groceries", "category": "Food", "amount": 350.50},
+        {"date": "2026-09-25", "description": "Metro card top-up", "category": "Transport", "amount": 120.00},
+        {"date": "2026-09-22", "description": "Pharmacy", "category": "Health", "amount": 600.00},
+        {"date": "2026-09-18", "description": "Movie night", "category": "Entertainment", "amount": 450.00},
+        {"date": "2026-09-15", "description": "New headphones", "category": "Shopping", "amount": 1899.99},
+    ]
+    stats = {
+        "total_spent": 4620.49,
+        "count": len(transactions),
+        "top_category": "Shopping",
+    }
+    breakdown = [
+        {"name": "Shopping", "total": 1899.99, "percent": 41},
+        {"name": "Bills", "total": 1200.00, "percent": 26},
+        {"name": "Health", "total": 600.00, "percent": 13},
+        {"name": "Entertainment", "total": 450.00, "percent": 10},
+        {"name": "Food", "total": 350.50, "percent": 8},
+        {"name": "Transport", "total": 120.00, "percent": 3},
+    ]
+    for row in breakdown:
+        # Bar widths are CSS classes (pct-0 … pct-100) so templates need no inline styles.
+        row["bar_class"] = "pct-{}".format(5 * round(row["percent"] / 5))
+
+    return render_template(
+        "profile.html",
+        user=user,
+        stats=stats,
+        transactions=transactions,
+        breakdown=breakdown,
+    )
 
 
 @app.route("/expenses/add")

@@ -38,3 +38,7 @@ No linter is configured.
 - `/create-spec <step> <name>` — creates a spec file and feature branch for the next step (requires a clean git working tree).
 - `/seeds-user` — inserts one random Indian dummy user (password `password123`).
 - `/seed-expense <user_id> <count> <months>` — inserts random dummy expenses for an existing user.
+
+## UI work
+
+For any UI work, follow `.claude/skills/frontend-design/skills.md`.

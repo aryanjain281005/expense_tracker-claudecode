@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block content %}
+
+<div class="profile-page">
+
+    <section class="profile-card" aria-label="User info">
+        <div class="avatar" aria-hidden="true">{{ user.initials }}</div>
+        <div class="profile-card-body">
+            <h1 class="profile-name">{{ user.name }}</h1>
+            <p class="profile-email">{{ user.email }}</p>
+            <p class="profile-meta">
+                <i data-lucide="calendar"></i>
+                Member since {{ user.member_since }}
+            </p>
+        </div>
+    </section>
+
+    <section class="stats-grid" aria-label="Summary">
+        <div class="stat-card">
+            <p class="stat-label"><i data-lucide="wallet"></i> Total spent</p>
+            <p class="stat-value">₹{{ "{:,.2f}".format(stats.total_spent) }}</p>
+        </div>
+        <div class="stat-card">
+            <p class="stat-label"><i data-lucide="receipt"></i> Transactions</p>
+            <p class="stat-value">{{ stats.count }}</p>
+        </div>
+        <div class="stat-card">
+            <p class="stat-label"><i data-lucide="tag"></i> Top category</p>
+            <p class="stat-value">
+                <span class="badge badge-{{ stats.top_category|lower }}">{{ stats.top_category }}</span>
+            </p>
+        </div>
+    </section>
+
+    <div class="profile-columns">
+
+        <section class="panel" aria-labelledby="tx-heading">
+            <h2 class="panel-title" id="tx-heading">
+                <i data-lucide="receipt"></i> Transaction history
+            </h2>
+            <div class="table-wrap">
+                <table class="tx-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Category</th>
+                            <th scope="col" class="amount">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions %}
+                        <tr>
+                            <td class="tx-date">{{ tx.date }}</td>
+                            <td>{{ tx.description }}</td>
+                            <td><span class="badge badge-{{ tx.category|lower }}">{{ tx.category }}</span></td>
+                            <td class="amount">₹{{ "{:,.2f}".format(tx.amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel" aria-labelledby="cat-heading">
+            <h2 class="panel-title" id="cat-heading">
+                <i data-lucide="tag"></i> Category breakdown
+            </h2>
+            <ul class="cat-list">
+                {% for cat in breakdown %}
+                <li class="cat-row">
+                    <div class="cat-row-head">
+                        <span class="cat-name">{{ cat.name }}</span>
+                        <span class="cat-amount">₹{{ "{:,.2f}".format(cat.total) }}
+                            <span class="cat-percent">{{ cat.percent }}%</span>
+                        </span>
+                    </div>
+                    <div class="cat-bar-track">
+                        <div class="cat-bar cat-bar-{{ cat.name|lower }} {{ cat.bar_class }}"></div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>lucide.createIcons();</script>
+{% endblock %}
