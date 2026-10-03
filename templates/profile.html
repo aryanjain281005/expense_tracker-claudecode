@@ -18,6 +18,10 @@
         </div>
     </section>
 
+    <div class="profile-actions">
+        <a class="btn-primary" href="{{ url_for('add_expense') }}"><i data-lucide="plus"></i> Add expense</a>
+    </div>
+
     <section class="filter-bar" aria-label="Date filter">
         <form class="filter-form{{ ' active' if date_filter.custom_active }}" method="get" action="{{ url_for('profile') }}">
             <label class="filter-field">From
