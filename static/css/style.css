@@ -833,6 +833,106 @@ a { color: inherit; text-decoration: none; }
 .pct-95 { width: 95%; }
 .pct-100 { width: 100%; }
 
+/* Date filter */
+.filter-bar {
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--ink-muted);
+}
+
+.filter-field input {
+    font: inherit;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+}
+
+.filter-field input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.filter-presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.filter-presets a {
+    color: var(--accent);
+    background: var(--accent-light);
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.625rem;
+    text-decoration: none;
+}
+
+.filter-presets a:hover { background: var(--border); }
+
+.filter-presets a.active {
+    background: var(--accent);
+    color: var(--paper-card);
+}
+
+.filter-form.active .filter-field input {
+    border-color: var(--accent);
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    color: var(--ink-muted);
+}
+
+.filter-error {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+}
+
+.empty-state {
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+    padding: 1rem 0;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .filter-form { flex-direction: column; align-items: stretch; }
+    .filter-bar { padding: 1rem; }
+}
+
 @media (max-width: 900px) {
     .profile-columns { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: 1fr; }

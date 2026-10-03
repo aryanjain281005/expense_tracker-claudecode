@@ -1,8 +1,10 @@
+import calendar
 import os
 import sqlite3
+from datetime import date, datetime
 
 from dotenv import load_dotenv
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.db import get_db, init_db, seed_db
@@ -16,6 +18,8 @@ from database.queries import (
 load_dotenv()
 
 app = Flask(__name__)
+if os.environ.get("APP_ENV") == "production" and not os.environ.get("SECRET_KEY"):
+    raise RuntimeError("SECRET_KEY must be set when APP_ENV=production.")
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
 
 with app.app_context():
@@ -126,6 +130,64 @@ def logout():
     return redirect(url_for("login"))
 
 
+def _parse_date(value):
+    """Return value normalised to YYYY-MM-DD if it is a real date, else None."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date().isoformat()
+    except ValueError:
+        return None
+
+
+def _months_ago(today, months):
+    """Same day-of-month `months` earlier, clamped to the month's last day."""
+    year, month = divmod(today.year * 12 + today.month - 1 - months, 12)
+    month += 1
+    day = min(today.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def _format_range_label(date_from, date_to):
+    def fmt(value):
+        return datetime.strptime(value, "%Y-%m-%d").strftime("%d %b %Y")
+
+    if date_from and date_to:
+        return f"{fmt(date_from)} – {fmt(date_to)}"
+    if date_from:
+        return f"From {fmt(date_from)}"
+    return f"Up to {fmt(date_to)}"
+
+
+def _build_date_filter(date_from, date_to, today):
+    """Template context for the filter bar: presets, active state and label."""
+    preset_ranges = [
+        ("This Month", today.replace(day=1), today),
+        ("Last 3 Months", _months_ago(today, 3), today),
+        ("Last 6 Months", _months_ago(today, 6), today),
+        ("All Time", None, None),
+    ]
+    presets = []
+    for label, p_from, p_to in preset_ranges:
+        p_from = p_from.isoformat() if p_from else None
+        p_to = p_to.isoformat() if p_to else None
+        presets.append(
+            {
+                "label": label,
+                # All Time passes no params, giving a clean /profile URL.
+                "url": url_for("profile", date_from=p_from, date_to=p_to),
+                "active": (date_from, date_to) == (p_from, p_to),
+            }
+        )
+    is_filtered = bool(date_from or date_to)
+    return {
+        "date_from": date_from or "",
+        "date_to": date_to or "",
+        "presets": presets,
+        "is_filtered": is_filtered,
+        "custom_active": is_filtered and not any(p["active"] for p in presets),
+        "label": _format_range_label(date_from, date_to) if is_filtered else "",
+    }
+
+
 @app.route("/profile")
 def profile():
     if not session.get("user_id"):
@@ -140,13 +202,24 @@ def profile():
     user = dict(user_row)
     user["initials"] = "".join(w[0] for w in user["name"].split()[:2]).upper()
 
-    summary = get_summary_stats(user_id)
+    # Malformed dates are treated as absent (silent fallback to unfiltered).
+    date_from = _parse_date(request.args.get("date_from", "").strip())
+    date_to = _parse_date(request.args.get("date_to", "").strip())
+    if date_from and date_to and date_from > date_to:
+        flash("Start date must be before end date.", "error")
+        date_from = date_to = None
+
+    date_filter = _build_date_filter(date_from, date_to, date.today())
+
+    summary = get_summary_stats(user_id, date_from, date_to)
     stats = {
         "total_spent": summary["total_spent"],
         "count": summary["transaction_count"],
         "top_category": summary["top_category"],
     }
-    transactions = get_recent_transactions(user_id)
+    transactions = get_recent_transactions(
+        user_id, date_from=date_from, date_to=date_to
+    )
     breakdown = [
         {
             "name": row["name"],
@@ -155,7 +228,7 @@ def profile():
             # Bar widths are CSS classes (pct-0 … pct-100) so templates need no inline styles.
             "bar_class": "pct-{}".format(5 * round(row["pct"] / 5)),
         }
-        for row in get_category_breakdown(user_id)
+        for row in get_category_breakdown(user_id, date_from, date_to)
     ]
 
     return render_template(
@@ -164,6 +237,7 @@ def profile():
         stats=stats,
         transactions=transactions,
         breakdown=breakdown,
+        date_filter=date_filter,
     )
 
 

@@ -3,14 +3,30 @@ from datetime import datetime
 from database.db import get_db
 
 
+def _date_clause(date_from, date_to):
+    """Return (sql_fragment, params) restricting `date` to an inclusive range.
+
+    Fragments are fixed strings; values are always passed as parameters.
+    """
+    clause, params = "", []
+    if date_from:
+        clause += " AND date >= ?"
+        params.append(date_from)
+    if date_to:
+        clause += " AND date <= ?"
+        params.append(date_to)
+    return clause, params
+
+
 # --- transactions ---
-def get_recent_transactions(user_id, limit=10):
+def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
+    clause, extra = _date_clause(date_from, date_to)
     conn = get_db()
     try:
         rows = conn.execute(
             "SELECT date, description, category, amount FROM expenses "
-            "WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT ?",
-            (user_id, limit),
+            f"WHERE user_id = ?{clause} ORDER BY date DESC, id DESC LIMIT ?",
+            (user_id, *extra, limit),
         ).fetchall()
     finally:
         conn.close()
@@ -44,18 +60,19 @@ def get_user_by_id(user_id):
     return {"name": row["name"], "email": row["email"], "member_since": member_since}
 
 
-def get_summary_stats(user_id):
+def get_summary_stats(user_id, date_from=None, date_to=None):
+    clause, extra = _date_clause(date_from, date_to)
     conn = get_db()
     try:
         totals = conn.execute(
             "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS cnt "
-            "FROM expenses WHERE user_id = ?",
-            (user_id,),
+            f"FROM expenses WHERE user_id = ?{clause}",
+            (user_id, *extra),
         ).fetchone()
         top = conn.execute(
-            "SELECT category FROM expenses WHERE user_id = ? "
+            f"SELECT category FROM expenses WHERE user_id = ?{clause} "
             "GROUP BY category ORDER BY SUM(amount) DESC LIMIT 1",
-            (user_id,),
+            (user_id, *extra),
         ).fetchone()
     finally:
         conn.close()
@@ -70,13 +87,14 @@ def get_summary_stats(user_id):
 
 
 # --- breakdown ---
-def get_category_breakdown(user_id):
+def get_category_breakdown(user_id, date_from=None, date_to=None):
+    clause, extra = _date_clause(date_from, date_to)
     db = get_db()
     try:
         rows = db.execute(
             "SELECT category, SUM(amount) AS total FROM expenses "
-            "WHERE user_id = ? GROUP BY category ORDER BY total DESC",
-            (user_id,),
+            f"WHERE user_id = ?{clause} GROUP BY category ORDER BY total DESC",
+            (user_id, *extra),
         ).fetchall()
     finally:
         db.close()
