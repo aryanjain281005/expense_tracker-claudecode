@@ -40,6 +40,20 @@ def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
         for r in rows
     ]
 
+
+def insert_expense(user_id, amount, category, expense_date, description):
+    conn = get_db()
+    try:
+        conn.execute(
+            "INSERT INTO expenses (user_id, amount, category, date, description) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (user_id, amount, category, expense_date, description or None),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # --- end transactions ---
 
 

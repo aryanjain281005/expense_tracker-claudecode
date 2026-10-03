@@ -1,4 +1,5 @@
 import calendar
+import math
 import os
 import sqlite3
 from datetime import date, datetime
@@ -7,15 +8,19 @@ from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database.db import get_db, init_db, seed_db
+from database.db import CATEGORIES, get_db, init_db, seed_db
 from database.queries import (
     get_category_breakdown,
     get_recent_transactions,
     get_summary_stats,
     get_user_by_id,
+    insert_expense,
 )
 
 load_dotenv()
+
+MAX_AMOUNT = 10_000_000
+MAX_DESCRIPTION_LENGTH = 200
 
 app = Flask(__name__)
 if os.environ.get("APP_ENV") == "production" and not os.environ.get("SECRET_KEY"):
@@ -241,9 +246,59 @@ def profile():
     )
 
 
-@app.route("/expenses/add")
+def _parse_amount(value):
+    """Return value as a float rounded to 2 dp if it is a valid amount, else None."""
+    try:
+        amount = round(float(value), 2)
+    except ValueError:
+        return None
+    if not math.isfinite(amount) or not 0 < amount <= MAX_AMOUNT:
+        return None
+    return amount
+
+
+def _validate_expense_form(form):
+    """Return (clean_values, error) for a stripped add-expense form dict."""
+    amount = _parse_amount(form["amount"])
+    if amount is None:
+        return None, "Enter an amount between 0.01 and {:,}.".format(MAX_AMOUNT)
+    if form["category"] not in CATEGORIES:
+        return None, "Choose a valid category."
+    expense_date = _parse_date(form["date"])
+    if expense_date is None:
+        return None, "Enter a valid date."
+    return {
+        "amount": amount,
+        "category": form["category"],
+        "expense_date": expense_date,
+        "description": form["description"][:MAX_DESCRIPTION_LENGTH],
+    }, None
+
+
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    form = {"date": date.today().isoformat()}
+    error = None
+    if request.method == "POST":
+        form = {
+            key: request.form.get(key, "").strip()
+            for key in ("amount", "category", "date", "description")
+        }
+        clean, error = _validate_expense_form(form)
+        if error is None:
+            insert_expense(session["user_id"], **clean)
+            return redirect(url_for("profile"))
+
+    return render_template(
+        "add_expense.html",
+        categories=CATEGORIES,
+        form=form,
+        error=error,
+        max_description_length=MAX_DESCRIPTION_LENGTH,
+    ), (400 if error else 200)
 
 
 @app.route("/expenses/<int:id>/edit")
