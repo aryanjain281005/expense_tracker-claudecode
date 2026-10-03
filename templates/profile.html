@@ -18,6 +18,32 @@
         </div>
     </section>
 
+    <section class="filter-bar" aria-label="Date filter">
+        <form class="filter-form{{ ' active' if date_filter.custom_active }}" method="get" action="{{ url_for('profile') }}">
+            <label class="filter-field">From
+                <input type="date" name="date_from" value="{{ date_filter.date_from }}">
+            </label>
+            <label class="filter-field">To
+                <input type="date" name="date_to" value="{{ date_filter.date_to }}">
+            </label>
+            <div class="filter-actions">
+                <button type="submit" class="btn-primary">Apply</button>
+                <a class="btn-ghost" href="{{ url_for('profile') }}">Clear</a>
+            </div>
+        </form>
+        <div class="filter-presets">
+            {% for preset in date_filter.presets %}
+            <a href="{{ preset.url }}"{% if preset.active %} class="active" aria-current="true"{% endif %}>{{ preset.label }}</a>
+            {% endfor %}
+        </div>
+        {% for message in get_flashed_messages(category_filter=["error"]) %}
+        <p class="filter-error" role="alert">{{ message }}</p>
+        {% endfor %}
+        {% if date_filter.is_filtered %}
+        <p class="filter-label">Showing {{ date_filter.label }}</p>
+        {% endif %}
+    </section>
+
     <section class="stats-grid" aria-label="Summary">
         <div class="stat-card">
             <p class="stat-label"><i data-lucide="wallet"></i> Total spent</p>
@@ -39,7 +65,7 @@
 
         <section class="panel" aria-labelledby="tx-heading">
             <h2 class="panel-title" id="tx-heading">
-                <i data-lucide="receipt"></i> Transaction history
+                <i data-lucide="receipt"></i> {{ "Transactions in range" if date_filter.is_filtered else "Transaction history" }}
             </h2>
             <div class="table-wrap">
                 <table class="tx-table">
@@ -58,6 +84,10 @@
                             <td>{{ tx.description }}</td>
                             <td><span class="badge badge-{{ tx.category|lower }}">{{ tx.category }}</span></td>
                             <td class="amount">₹{{ "{:,.2f}".format(tx.amount) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="empty-state">No transactions{{ " in this date range" if date_filter.is_filtered }}.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -82,6 +112,8 @@
                         <div class="cat-bar cat-bar-{{ cat.name|lower }} {{ cat.bar_class }}"></div>
                     </div>
                 </li>
+                {% else %}
+                <li class="empty-state">No spending{{ " in this date range" if date_filter.is_filtered }}.</li>
                 {% endfor %}
             </ul>
         </section>
