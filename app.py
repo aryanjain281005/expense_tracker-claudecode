@@ -6,6 +6,12 @@ from flask import Flask, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.db import get_db, init_db, seed_db
+from database.queries import (
+    get_category_breakdown,
+    get_recent_transactions,
+    get_summary_stats,
+    get_user_by_id,
+)
 
 load_dotenv()
 
@@ -125,37 +131,32 @@ def profile():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
-    # Hardcoded for Step 4 — replaced by real queries in Step 5.
-    user = {
-        "name": "Demo User",
-        "email": "demo@spendly.com",
-        "initials": "DU",
-        "member_since": "January 2026",
-    }
-    transactions = [
-        {"date": "2026-10-01", "description": "Electricity bill", "category": "Bills", "amount": 1200.00},
-        {"date": "2026-09-28", "description": "Groceries", "category": "Food", "amount": 350.50},
-        {"date": "2026-09-25", "description": "Metro card top-up", "category": "Transport", "amount": 120.00},
-        {"date": "2026-09-22", "description": "Pharmacy", "category": "Health", "amount": 600.00},
-        {"date": "2026-09-18", "description": "Movie night", "category": "Entertainment", "amount": 450.00},
-        {"date": "2026-09-15", "description": "New headphones", "category": "Shopping", "amount": 1899.99},
-    ]
+    user_id = session["user_id"]
+    user_row = get_user_by_id(user_id)
+    if user_row is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    user = dict(user_row)
+    user["initials"] = "".join(w[0] for w in user["name"].split()[:2]).upper()
+
+    summary = get_summary_stats(user_id)
     stats = {
-        "total_spent": 4620.49,
-        "count": len(transactions),
-        "top_category": "Shopping",
+        "total_spent": summary["total_spent"],
+        "count": summary["transaction_count"],
+        "top_category": summary["top_category"],
     }
+    transactions = get_recent_transactions(user_id)
     breakdown = [
-        {"name": "Shopping", "total": 1899.99, "percent": 41},
-        {"name": "Bills", "total": 1200.00, "percent": 26},
-        {"name": "Health", "total": 600.00, "percent": 13},
-        {"name": "Entertainment", "total": 450.00, "percent": 10},
-        {"name": "Food", "total": 350.50, "percent": 8},
-        {"name": "Transport", "total": 120.00, "percent": 3},
+        {
+            "name": row["name"],
+            "total": row["amount"],
+            "percent": row["pct"],
+            # Bar widths are CSS classes (pct-0 … pct-100) so templates need no inline styles.
+            "bar_class": "pct-{}".format(5 * round(row["pct"] / 5)),
+        }
+        for row in get_category_breakdown(user_id)
     ]
-    for row in breakdown:
-        # Bar widths are CSS classes (pct-0 … pct-100) so templates need no inline styles.
-        row["bar_class"] = "pct-{}".format(5 * round(row["percent"] / 5))
 
     return render_template(
         "profile.html",
